@@ -37,34 +37,39 @@ const registerUser = async(req,res,next)=>{
 
 }
 
-const loginUser = async(req,res,next) => {
+//=========== Login user
+//Post : api/users/Login
+//unprotected
+
+const loginUser = async(req,res,next)=> {
     try {
         const {email,password} = req.body;
         if(!email || !password) {
             return next(new HttpError("Fill in all the fields", 422))
-        }
-        const lowerEmail = email.toLowerCase();
 
-        const user = User.findOne({email : lowerEmail})
+        }
+        const lowerCasedEmail = email.toLowerCase();
+        const user = await User.findOne({email:lowerCasedEmail})
         if(!user) {
-            return next(new HttpError("Invalid credentials", 422))
-        }
+            return next(new HttpError("User does not exists",422))
 
+        }
         const {uPassword, ...userInfo} = user;
-        const comparePass = await bcrypt.compare(password,user?.password);
-        if(!comparePass) {
-            return next(new HttpError("Invalid credentials", 422))
+        //authentication
+        const comparedPassword = await bcrypt.compare(password, user?.password)
+        if(!comparedPassword) {
+            return next(new HttpError("Incorrect Password !", 422))
         }
+        const token = jwt.sign({id : user?._id},process.env.SECRET, {
+            expiresIn : "1h"
+        })
+        res.status(200).json({message : "User logged in successfully !", token : token, id : user?._id, ...userInfo})
 
-
-        const token = await jwt.sign({id: user?._id}, process.env.SECRET, {
-            expiresIn : '1h'
-        }) 
-        res.status(200).json({token : token, id : user?._id, ...userInfo})
-    }catch(error) {
-        return next(new HttpError(error,error.code))
+    }catch(err) {
+        res.status(500).json(err)
 
     }
+    
 
 
 }
@@ -99,22 +104,62 @@ const followUnfollowUser = async(req,res)=>{
 //==================Edit user
 //Patdh  : api/users/edit
 //protected
-const editUser = async(req,res)=>{
+const editUser = async (req, res, next) => {
     try {
-        res.json("Edit User")
+        const { id } = req.params;
+        const { newName, newBio } = req.body;
 
-    }catch(err) {
-        return next(new HttpError(err))
+        const user = await User.findById(id);
+        if (!user) {
+            return next(new HttpError("User not found", 404));
+        }
 
+        // Check if nothing has changed
+        if (
+            (newName && newName === user.fullName) &&
+            (newBio && newBio === user.bio)
+        ) {
+            return next(new HttpError("No changes detected", 422));
+        }
+
+        // Build update object conditionally
+        const updateData = {};
+        if (newName && newName !== user.fullName) updateData.fullName = newName;
+        if (newBio && newBio !== user.bio) updateData.bio = newBio;
+
+        // If updateData is empty, throw error
+        if (Object.keys(updateData).length === 0) {
+            return next(new HttpError("Nothing to update", 422));
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            id,
+            updateData,
+            { new: true, runValidators: true }
+        );
+
+        res.status(200).json({
+            message: "UserInfo successfully updated",
+            updatedUser
+        });
+
+    } catch (err) {
+        return next(new HttpError(err.message || "Something went wrong", 500));
     }
+};
 
-}
+
+
 //==================get users
 //Get  : api/users
 //protected
-const getAllUsers = async(req,res)=>{
+const getAllUsers = async(req,res,next)=>{
     try {
-        res.json("GET ALL users")
+        const allUsers =await User.find().limit(10).sort({createdAt : -1})
+        if(!allUsers) {
+            return next(new HttpError("No users till now", 422));
+        }
+         res.status(200).json({message : "Users successfully fetched :", allUsers})
 
     }catch(err) {
         return next(new HttpError(err))
@@ -125,9 +170,15 @@ const getAllUsers = async(req,res)=>{
 //================= get user
 //GET : api/users/:id
 //protected
-const getUser = async(req,res)=>{
+const getUser = async(req,res,next)=>{
     try {
-        res.json("Get User")
+        const {id} = req.params;
+        const user = await User.findById(id)
+        if(!user) {
+            return next(new HttpError("User does not exists", 422));
+        }else {
+            res.status(200).json({message : "User successfully fetched", user : user})
+        }
 
     }catch(err) {
         return next(new HttpError(err))
