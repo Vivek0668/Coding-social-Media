@@ -2,6 +2,13 @@ const HttpError = require('../models/errorModel');
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
+const uuid = require('uuid').v4
+const fs = require('fs')
+const path = require('path')
+const cloudinary = require('../utilis/cloudinary')
+
+
+
 //==================Register user
 //Post  : api/users/signup
 //unprotected
@@ -78,9 +85,38 @@ const loginUser = async(req,res,next)=> {
 //==================Change userprofile
 //Patch  : api/users/avatar
 //protected
-const changeUserAvatar = async(req,res)=>{
+const changeUserAvatar = async(req,res,next)=>{
     try {
-        res.json("Change UserAvatar ")
+      if(!req.files.avatar) {
+        return next(new HttpError("Please upload an image", 404))
+      }
+      const {avatar} = req.files;
+      //check the file size
+      if(avatar.size > 500000) {
+        return next(new HttpError("Profile picture too big.Should be less then 5mb"))
+      }
+
+      let fileName = avatar.name;
+      let SplittedName = fileName.split(".")
+      let newFileName= SplittedName[0] + uuid() + "." + SplittedName[SplittedName.length-1]
+      avatar.mv(path.join(__dirname, "..", "uploads", newFileName), async(err)=> {
+        if(err) {
+            return next(new HttpError(err), err.code)  
+             }
+
+             //store the image on the cloudinary
+             const result = await cloudinary.uploader.upload(path.join(__dirname, '..', "uploads", newFileName), {
+                resource_type : "image"
+             })
+             if(!result.secure_url) {
+                return next(new HttpError("Not able to upload image on the cloudinary !", 422))
+             }
+             const updatedUser = await User.findByIdAndUpdate(req.user.id, {profilePhoto : 
+                result?.secure_url},
+                 {new : true})
+                 res.json(updatedUser).status(200)
+      })
+
 
     }catch(err) {
         return next(new HttpError(err))
@@ -90,10 +126,27 @@ const changeUserAvatar = async(req,res)=>{
 }
 //==================followUnfollow  user
 //Patch  : api/users/:id/follow-unfollow
-//unprotected
-const followUnfollowUser = async(req,res)=>{
+//protected
+const followUnfollowUser = async(req,res,next)=>{
     try {
-        res.json("Follow/unfollow User")
+        const userToFollow = req.params.id
+        if(userToFollow === req.user.id) {
+            return next(new HttpError("You cannot follow/unfollow yourself", 422))
+        }
+        const currentUser =await User.findById(req.user.id);
+        const isFollowing = currentUser?.following?.includes(userToFollow);
+        if(isFollowing) {
+        const udpatedUser = await User.findByIdAndUpdate(userToFollow, {$pop: {followeres: req.user.id}}, {new : true})
+        await User.findByIdAndUpdate(req.user.id, {$pop: {following: userToFollow}}, 
+            {new : true}
+        )
+        }else {
+            const updatedUser = await User.findByIdAndUpdate(userToFollow, {
+                $push: {followeres: req.user.id}
+            }, {new : true})
+            await User.findByIdAndUpdate(req.user.id, {$push : {following : userToFollow}}, {new : true}) 
+            res.json(updatedUser)
+        }
 
     }catch(err) {
         return next(new HttpError(err))
@@ -105,47 +158,12 @@ const followUnfollowUser = async(req,res)=>{
 //Patdh  : api/users/edit
 //protected
 const editUser = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { newName, newBio } = req.body;
+  try {
+    const {fullName, bio} = req.body;
+    const editedUser = await User.findByIdAndUpdate(req.user.id,{fullName,bio},{new: true})
+    res.json(editedUser).status(200)
+  }catch(err) {}
 
-        const user = await User.findById(id);
-        if (!user) {
-            return next(new HttpError("User not found", 404));
-        }
-
-        // Check if nothing has changed
-        if (
-            (newName && newName === user.fullName) &&
-            (newBio && newBio === user.bio)
-        ) {
-            return next(new HttpError("No changes detected", 422));
-        }
-
-        // Build update object conditionally
-        const updateData = {};
-        if (newName && newName !== user.fullName) updateData.fullName = newName;
-        if (newBio && newBio !== user.bio) updateData.bio = newBio;
-
-        // If updateData is empty, throw error
-        if (Object.keys(updateData).length === 0) {
-            return next(new HttpError("Nothing to update", 422));
-        }
-
-        const updatedUser = await User.findByIdAndUpdate(
-            id,
-            updateData,
-            { new: true, runValidators: true }
-        );
-
-        res.status(200).json({
-            message: "UserInfo successfully updated",
-            updatedUser
-        });
-
-    } catch (err) {
-        return next(new HttpError(err.message || "Something went wrong", 500));
-    }
 };
 
 
