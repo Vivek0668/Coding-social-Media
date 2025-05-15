@@ -14,7 +14,41 @@ const path  = require('path')
 
 const createCreatePost = async(req,res, next)=> {
         try {
-            res.json("Create post")
+         const {body} = req.body;
+         if(!body) {
+            return next(new HttpError("Fill all the required fields"))
+         }
+         if(!req.files.image) {
+            return next(new HttpError("Please choose an image"))
+         }else {
+            const {image} = req.files
+            if(image.size>1000000) {
+                return next(new HttpError("File size should not exceed more than 500kb",422))
+            }
+            let fileName = image.name;
+            fileName = fileName.split(".");
+            fileName = fileName[0] + uuid() + "." + fileName[fileName.length-1]
+            await image.mv(path.join(__dirname, '..', 'uploads', fileName),async(err)=> {
+                if(err) {
+                    return next(new HttpError(err))
+                }
+                //store the image in cloudinary
+                const result  = await cloudinary.uploader.upload(path.join(__dirname, "..", 'uploads',
+                    fileName
+                ),{resource_type : "image"})
+                if(!result.secure_url) {
+                    return next(new HttpError("Couldn't upload the image to cloudinary",422 )) 
+                }
+                //save post to db
+                const newPost  = await Post.create(
+                    {creator: req.user.id, body, image: result.secure_url} )
+
+                await User.findByIdAndUpdate(newPost?.creator, {$push: {posts: newPost?._id}}, {new: true})
+                res.json(newPost)
+            })
+         }
+
+
 
         }catch(err) {
             return next(new HttpError(err))
@@ -29,7 +63,8 @@ const createCreatePost = async(req,res, next)=> {
 
 const getPosts = async(req,res, next)=> {
         try {
-            res.json("get posts")
+     const posts = await Post.find().sort({createdAt : -1})
+     res.status(201).json(posts);
 
         }catch(err) {
             return next(new HttpError(err))
@@ -40,13 +75,19 @@ const getPosts = async(req,res, next)=> {
 
 
 //============= DELETE POST
-//DELETE : api/deletePost
+//DELETE : api/posts/:id
 //PROTECTED
 
 const deletePost = async(req,res, next)=> {
         try {
-            res.json("Delete post")
-
+         const {id} = req.params;
+         const post = await Post.findById(id);
+         if(post?.creator != req.user.id){
+            return next(new HttpError("You are not authorized to delete this post! ", 403))
+         }
+         await Post.findByIdAndDelete(id);
+         await User.findByIdAndUpdate(post?.creator, {$pull : {posts : post?._id}})
+         res.status(200).json({message : `Your ${post.body} has been deleted`})
         }catch(err) {
             return next(new HttpError(err))
         }
@@ -61,8 +102,13 @@ const deletePost = async(req,res, next)=> {
 
 const getPost = async(req,res, next)=> {
         try {
-            res.json("Get post")
-
+            const {id} = req.params;
+            const post =  await Post.findById(id)
+            res.json(post)
+            if(!post) {
+                return next(new HttpError("Post does not exists"))
+            }
+            res.status(201).json(post)
         }catch(err) {
             return next(new HttpError(err))
         }
@@ -77,8 +123,16 @@ const getPost = async(req,res, next)=> {
 
 const updatePost = async(req,res, next)=> {
         try {
-            res.json("Edit post")
-
+        const newBody = req.body.body;
+        const {id} = req.params;
+        const post = await Post.findById(id);
+        if(post?.creator != req.user.id) {
+            return next(new HttpError("You are not authorized to update this post!", 403))
+        }
+         const newPost =await Post.findByIdAndUpdate(id, {body : newBody}, {
+            new : true
+         })
+         res.status(201).json(newPost)
         }catch(err) {
             return next(new HttpError(err))
         }
@@ -91,7 +145,9 @@ const updatePost = async(req,res, next)=> {
 
 const getFollowingPosts = async(req,res, next)=> {
         try {
-            res.json("Get Following posts")
+            const user =await User.findById(req.user.id)
+            const posts = await Post.find({creator : {$in : user?.following}})
+            res.json(posts);
 
         }catch(err) {
             return next(new HttpError(err))
@@ -104,12 +160,20 @@ const getFollowingPosts = async(req,res, next)=> {
 //Get: api/posts/:id/like
 //Protected
 
-const likeDislikePosts = (req,res,next) => {
+const likeDislikePosts = async(req,res,next) => {
     try {
-        res.json("likeDislikePosts")
+      const {id} = req.params;
+      const post = await Post.findById(id);
+      const alreadyLiked = post?.likes.includes(req.user.id);
+      if(alreadyLiked) {
+        await Post.findByIdAndUpdate(id, {$pull : {likes : req.user.id}})
+        res.status(200).json({message : "Disliked !"})
+      }else {
+        await Post.findByIdAndUpdate(id,{$push : {likes : req.user.id}})
+        res.status(200).json({message : "Liked!" })      }
 
     }catch (err) {
-        return next(new HttpError(err));
+        return next(new HttpError(err));    
     }
 }
 
@@ -140,13 +204,18 @@ const createBookmark = (req,res,next)=> {
 }
 
 //====== getBookmarks
-//Get
+//Get  api/bookmarks
 //Protected
 
-const getBookmarks = (req,res,next) => {
+const getUserBookmarks = (req,res,next) => {
     try {
         res.json("Get bookmarks")
     }catch(err) {
         return next(new HttpError(err))
     }
+}
+
+module.exports = {
+    getFollowingPosts, getPost, getPosts, getUserBookmarks, likeDislikePosts, 
+    updatePost, deletePost,getUserPosts,  createBookmark, createCreatePost,
 }
