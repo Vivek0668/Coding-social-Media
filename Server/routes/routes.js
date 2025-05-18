@@ -9,6 +9,7 @@ const { getFollowingPosts, getPost, getPosts, getUserBookmarks, likeDislikePosts
     updatePost, deletePost,getUserPosts,  createBookmark, createCreatePost,
 } = require('../controllers/postController')
 const authMiddleware = require('../middlewares/authMiddleware')
+const { createComment,deleteComment,getPostComments } = require('../controllers/commentController')
 
 //user routes
 
@@ -32,8 +33,15 @@ router.get('/posts',getPosts)
 router.patch('/posts/:id',authMiddleware ,updatePost)
 router.delete('/posts/:id',authMiddleware, deletePost)
 router.get('/posts/:id/likeDislike',authMiddleware,likeDislikePosts)
+router.get('/posts/:id/bookmark',authMiddleware, createBookmark)
 
-router.get('/posts/:id/bookmark', createBookmark)
+
+//comment routes
+router.post('/comments/:postId',authMiddleware, createComment)
+router.delete('/comments/:postId',authMiddleware, deleteComment)
+router.get('/comments/:postId',authMiddleware, getPostComments)
+
+
 
 
 

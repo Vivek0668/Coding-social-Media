@@ -86,7 +86,13 @@ const deletePost = async(req,res, next)=> {
             return next(new HttpError("You are not authorized to delete this post! ", 403))
          }
          await Post.findByIdAndDelete(id);
-         await User.findByIdAndUpdate(post?.creator, {$pull : {posts : post?._id}})
+         const mongoose = require("mongoose");
+
+
+        await User.findByIdAndUpdate( post.creator,
+        { $pull: { posts: new mongoose.Types.ObjectId(post._id) } }
+);
+
          res.status(200).json({message : `Your ${post.body} has been deleted`})
         }catch(err) {
             return next(new HttpError(err))
@@ -165,12 +171,15 @@ const likeDislikePosts = async(req,res,next) => {
       const {id} = req.params;
       const post = await Post.findById(id);
       const alreadyLiked = post?.likes.includes(req.user.id);
+      let updatedPost;
       if(alreadyLiked) {
-        await Post.findByIdAndUpdate(id, {$pull : {likes : req.user.id}})
-        res.status(200).json({message : "Disliked !"})
+       updatedPost = await Post.findByIdAndUpdate(id, {$pull : {likes : req.user.id}}, {new : true})
+
       }else {
-        await Post.findByIdAndUpdate(id,{$push : {likes : req.user.id}})
-        res.status(200).json({message : "Liked!" })      }
+       updatedPost = await Post.findByIdAndUpdate(id,{$push : {likes : req.user.id}}, {new : true})
+           
+     }
+      res.status(200).json({updatedPost : updatedPost}) 
 
     }catch (err) {
         return next(new HttpError(err));    
@@ -181,9 +190,25 @@ const likeDislikePosts = async(req,res,next) => {
 //Get: api/users/:id/posts
 //Protected
 
-const getUserPosts = (req,res,next) => {
+const getUserPosts = async(req,res,next) => {
     try {
-        res.json("get  User Posts")
+    // const {id} = req.params;
+    // const user = await  User.findById(id)
+    // if(!user) {
+    //     return next(new HttpError("User don't exists"))
+    // }
+    // const userPosts = await Post.find({creator : id})
+    // if(userPosts.length<1) {
+    //     res.status(404).json({message : "User has 0 posts"})
+    // }
+    // res.status(200).json({userPosts})
+   
+    const userId = req.params.id;
+    const posts = await User.findById(userId).populate({path : "posts", options : {sort: {createdAt:-1}}})
+    if(posts.posts<1) {
+        res.json({message : "User has 0 posts"})
+    }
+    res.json(posts);
 
     }catch (err) {
         return next(new HttpError(err));
@@ -195,21 +220,37 @@ const getUserPosts = (req,res,next) => {
 //POST
 //PROTECTED
 
-const createBookmark = (req,res,next)=> {
+const createBookmark = async(req,res,next)=> {
     try {
-        res.json("Create bookmark")
+       const {id} = req.params
+       const user = await User.findById(req.user.id)
+       const alreadyBookMarked = user?.bookmarks?.includes(id);
+       let updatedBookMarks;
+       if(alreadyBookMarked) {
+         updatedBookMarks = await User.findByIdAndUpdate(req.user.id, {$pull : {bookmarks : id}, },{new : true})
+       }else {
+        updatedBookMarks =await User.findByIdAndUpdate(req.user.id, {$push : {bookmarks : id}, },{new : true})
+
+       }
+        res.status(200).json({userBookMarks : updatedBookMarks}); 
+       
     }catch (err) {
         return next(new HttpError(err))
     }
 }
 
 //====== getBookmarks
-//Get  api/bookmarks
+//Get  api/users/bookmarks
 //Protected
 
-const getUserBookmarks = (req,res,next) => {
+const getUserBookmarks = async(req,res,next) => {
     try {
-        res.json("Get bookmarks")
+        const user = await User.findById(req.user.id).populate({path : "bookmarks", options : {sort :{ createdAt : -1}}})
+        if(user.bookmarks.length<1) {
+            res.json({message : "User has 0 bookmarks"})
+        }
+        res.json(user)
+        
     }catch(err) {
         return next(new HttpError(err))
     }
