@@ -61,7 +61,7 @@ const loginUser = async(req,res,next)=> {
             return next(new HttpError("User does not exists",422))
 
         }
-        const {uPassword, ...userInfo} = user;
+        const {uPassword, ...userInfo} = user.toObject();
         //authentication
         const comparedPassword = await bcrypt.compare(password, user?.password)
         if(!comparedPassword) {

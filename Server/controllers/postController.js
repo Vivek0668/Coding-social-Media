@@ -109,7 +109,9 @@ const deletePost = async(req,res, next)=> {
 const getPost = async(req,res, next)=> {
         try {
             const {id} = req.params;
-            const post =  await Post.findById(id)
+            const post =  await Post.findById(id).populate("creator").populate({path : "comments", options : {sort 
+                : {createdAt : -1}
+            } })
             res.json(post)
             if(!post) {
                 return next(new HttpError("Post does not exists"))

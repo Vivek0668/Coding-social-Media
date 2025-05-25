@@ -1,7 +1,7 @@
 const HttpError = require('../models/errorModel')
 const User = require('../models/userModel')
 const Post = require('../models/postModel')
-const Comment = require('../models/commentModel')
+const Comments = require('../models/commentModel')
 
 
 
@@ -36,7 +36,17 @@ const createComment = async(req,res,next)=> {
 //Protected
 const getPostComments = async(req,res,next)=> {
     try{
-        res.status(200).json("get comment");
+        const {postId} = req.params;
+        const postComments = await Post.findById(postId).populate({path : "comments", options :
+             {sort : {createdAt : -1}}
+        })
+        
+        if(!postComments ) {
+            return next(new HttpError("Post dont exist"))
+        }
+        res.json({comments : postComments}).status(200);
+        
+    
     }catch(err) {
         return next(new HttpError(err))
     }
@@ -45,11 +55,24 @@ const getPostComments = async(req,res,next)=> {
 
 //================deleteComment
 //Delete
-//api/comments/:postId
+//api/comments/:commentId
 //Protected
 const deleteComment = async(req,res,next)=> {
     try {
-        res.status(200).json("Delete comment");
+      const {commentId} = req.params;
+      const comment = await Comments.findById(commentId);
+      if(!comment) {
+        res.json({message : "Comment dont exists"})
+      }
+      const commentCreator =await User.findById(comment?.creator?.creatorId);
+      if(commentCreator._id != req.user.id) {
+        return next(new HttpError("You are not authorized to this activity! "))
+      }
+      const deletedComment = await Comments.findByIdAndDelete(commentId);
+      await Post.findByIdAndUpdate(deletedComment?.postId, {$pull : {comments : commentId}})
+      res.json({deletedComment : deletedComment}).status(200);
+
+
     }catch(err) {
         return next(new HttpError(err))
     }

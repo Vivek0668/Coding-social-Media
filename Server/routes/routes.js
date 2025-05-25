@@ -10,6 +10,7 @@ const { getFollowingPosts, getPost, getPosts, getUserBookmarks, likeDislikePosts
 } = require('../controllers/postController')
 const authMiddleware = require('../middlewares/authMiddleware')
 const { createComment,deleteComment,getPostComments } = require('../controllers/commentController')
+const { createMessage, getMessage, getConversations } = require('../controllers/messageController')
 
 //user routes
 
@@ -38,9 +39,15 @@ router.get('/posts/:id/bookmark',authMiddleware, createBookmark)
 
 //comment routes
 router.post('/comments/:postId',authMiddleware, createComment)
-router.delete('/comments/:postId',authMiddleware, deleteComment)
+router.delete('/comments/:commentId',authMiddleware, deleteComment)
 router.get('/comments/:postId',authMiddleware, getPostComments)
 
+
+
+//message routes
+router.get('/messages/conversations',authMiddleware,getConversations)
+router.post('/messages/:receiverId',authMiddleware, createMessage)
+router.get('/messages/:receiverId',authMiddleware, getMessage)
 
 
 

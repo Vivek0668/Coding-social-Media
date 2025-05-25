@@ -5,8 +5,9 @@ require("dotenv").config();
 const { connect } = require("mongoose");
 const routes = require("./routes/routes");
 const { notFound, errorHandler } = require('./middlewares/errormiddleware');
+const { server, app } = require('./socket/socket');
 
-const app = express();
+
 
 app.use(express.json({ extended: true }));
 app.use(cors({ credentials: true, origin: ["http://localhost:5173"] }));
@@ -18,7 +19,7 @@ app.use(notFound);       // 404 middleware
 app.use(errorHandler);   // Error-handling middleware
 
 connect(process.env.MONGO_URL)
-  .then(() => app.listen(process.env.PORT || 8080, () => {
-    console.log(`Server running on port ${process.env.PORT || 8080}`);
+  .then(() => server.listen(process.env.PORT || 5000, () => {
+    console.log(`Server running on port ${process.env.PORT || 5000}`);
   }))
   .catch(err => console.error(err));
