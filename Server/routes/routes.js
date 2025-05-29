@@ -6,7 +6,7 @@ const router = require('express').Router()
 const {getUser, getAllUsers,loginUser,registerUser,editUser, followUnfollowUser,changeUserAvatar} 
 =  require("../controllers/userControllers")
 const { getFollowingPosts, getPost, getPosts, getUserBookmarks, likeDislikePosts, 
-    updatePost, deletePost,getUserPosts,  createBookmark, createCreatePost,
+    updatePost, deletePost,getUserPosts,  createBookmark, createPost,
 } = require('../controllers/postController')
 const authMiddleware = require('../middlewares/authMiddleware')
 const { createComment,deleteComment,getPostComments } = require('../controllers/commentController')
@@ -27,7 +27,7 @@ router.get("/users/:id/posts",authMiddleware,getUserPosts)
 
 
 //post routes
-router.post('/posts',authMiddleware, createCreatePost)
+router.post('/posts',authMiddleware, createPost)
 router.get('/posts/following',authMiddleware, getFollowingPosts)
 router.get('/posts/:id', authMiddleware ,getPost)
 router.get('/posts',getPosts)

@@ -17,6 +17,7 @@ const CreatePost = ({onCreatePost, error}) => {
         const postData  = new FormData();
          postData.set('body', body);
         postData.set('image', image);
+        console.log(postData)
         onCreatePost(postData);
         setBody("");
         setImage("");
