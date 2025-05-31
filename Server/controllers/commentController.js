@@ -18,7 +18,7 @@ const createComment = async(req,res,next)=> {
         return next(new HttpError("Please add a comment!"));
     }
     const commenter = await User.findById(req.user.id);
-    const newComment = await Comment.create({
+    const newComment = await Comments.create({
         creator:{creatorId : req.user.id
     ,creatorName : commenter?.fullName, 
     creatorPhoto : commenter?.profilePhoto},

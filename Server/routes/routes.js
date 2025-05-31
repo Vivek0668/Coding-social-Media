@@ -26,6 +26,7 @@ router.get("/users/:id/posts",authMiddleware,getUserPosts)
 
 
 
+
 //post routes
 router.post('/posts',authMiddleware, createPost)
 router.get('/posts/following',authMiddleware, getFollowingPosts)

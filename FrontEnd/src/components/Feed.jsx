@@ -1,47 +1,129 @@
 import axios from 'axios'
-import React, { useEffect,useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
-import {Link} from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import ProfileImage from './ProfileImage'
 import TimeAgo from 'react-timeago'
+import { FaRegCommentDots } from 'react-icons/fa'
+import { IoMdShare } from "react-icons/io"
+import LikeDislikePost from './LikeDislikePost'
+import Trimtext from '../helpers/Trimtext'
+import BookmarksPost from './BookmarksPost'
 
+const Feed = ({ post, onBookmarkChange }) => {
+    const [currentUser, setCurrentUser] = useState(null)
+    const [creator, setCreator] = useState({})
+    const [showFeedHeaderMenu, setShowFeedHeaderMenu] = useState(false)
+    const token = useSelector(state => state.user.currentUser?.token)
+    const userId = useSelector(state => state.user?.currentUser?.id)
+    const location = useLocation()
 
-const Feed = ({post}) => {
-    const [creator,setCreator] = useState({});
-    const token = useSelector(state=> state.user.currentUser?.token)
-
- const getCreator = async(post)=> {
-    try {
-        console.log(post)
-     
-    const response = await axios.get(`${import.meta.env.VITE_Backend_api_url}/users/${post?.creator}`,
-    {withCredentials: true, headers : { Authorization : `Bearer ${token}`}})
-    console.log(response.data)
-    setCreator(response?.data)
-    }catch(err) {
-        console.log(err)
+    // Fetch creator data
+    const getCreator = async (creatorId) => {
+        try {
+            const response = await axios.get(
+                `${import.meta.env.VITE_Backend_api_url}/users/${creatorId}`,
+                { 
+                    withCredentials: true, 
+                    headers: { Authorization: `Bearer ${token}` } 
+                }
+            )
+            setCreator(response?.data)
+        } catch (err) {
+            console.error("Failed to fetch creator:", err)
+        }
     }
 
- }
- useEffect(()=>{
-    getCreator(post);
- },[])
+    // Fetch current user data
+    const getCurrentUser = async () => {
+        try {
+            if (!userId) return
+            const response = await axios.get(
+                `${import.meta.env.VITE_Backend_api_url}/users/${userId}`,
+                { 
+                    withCredentials: true, 
+                    headers: { Authorization: `Bearer ${token}` } 
+                }
+            )
+            setCurrentUser(response.data.user || response.data)
+        } catch (err) {
+            console.error("Failed to fetch current user:", err)
+        }
+    }
 
+    // Effects with proper dependencies
+    useEffect(() => {
+        if (post?.creator) {
+            getCreator(post.creator)
+        }
+    }, [post?.creator, token]) // Re-run when creator ID or token changes
 
-  return (
-      <article className='feed'>
-    <header className='feed__header'>
-        <Link to={`users/${post.creator}`} className='feed__header-profile'>
-            <ProfileImage image={creator?.user?.profilePhoto}/>
-            <div className='feed__header-details'>
-                <h4>{creator?.user?.fullName}</h4>
-                <small><TimeAgo date={post?.createdAt}/></small>
-            </div>
-        </Link>
-    </header>
+    useEffect(() => {
+        let isMounted = true
+        
+        if (userId) {
+            getCurrentUser()
+        }
 
-    </article>
-  )
+        return () => {
+            isMounted = false
+        }
+    }, [userId, token, post?._id]) // Re-run when user ID, token, or post ID changes
+
+    const handleBookmarkUpdate = async () => {
+        await getCurrentUser() // Refresh current user data
+        onBookmarkChange?.() // Notify parent component if needed
+    }
+
+    return (
+        <article className='feed'>
+            <header className='feed__header'>
+                <Link to={`users/${post.creator}`} className='feed__header-profile'>
+                    <ProfileImage image={creator?.user?.profilePhoto} />
+                    <div className='feed__header-details'>
+                        <h4>{creator?.user?.fullName}</h4>
+                        <small><TimeAgo date={post?.createdAt} /></small>
+                    </div>
+                </Link>
+                
+                {showFeedHeaderMenu && userId === post?.creator && location.pathname.includes('users') && (
+                    <menu className='feed__headermenu'>
+                        <button onClick={showEditPostModal}>Edit</button>
+                        <button onClick={deletePost}>Delete</button>
+                    </menu>
+                )}
+            </header>
+
+            <Link to={`posts/${post?._id}`} className='feed__body'>
+                <p><Trimtext item={post?.body} maxLength={100} /></p>
+                {post?.image && (
+                    <div className='feed__images'>
+                        <img src={post?.image} alt='post' loading='lazy' />
+                    </div>
+                )}
+            </Link>
+
+            <footer className='feed__footer'>
+                <div>
+                    <LikeDislikePost post={post} />
+                    <button className='feed__footer-comments'>
+                        <Link to={`/posts/${post._id}`}>
+                            <FaRegCommentDots />
+                        </Link>
+                        <small>{post?.comments?.length}</small>
+                    </button>
+                    <button className='feed__footer-share'>
+                        <IoMdShare />
+                    </button>
+                </div>
+                <BookmarksPost 
+                    post={post} 
+                    currentUser={currentUser} 
+                    onBookmarkChange={handleBookmarkUpdate}
+                />
+            </footer>
+        </article>
+    )
 }
 
 export default Feed

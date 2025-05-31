@@ -175,7 +175,7 @@ const createBookmark = async (req, res, next) => {
       : { $push: { bookmarks: id } };
 
     const updatedUser = await User.findByIdAndUpdate(req.user.id, update, { new: true });
-    res.status(200).json(updatedUser.bookmarks);
+    res.status(200).json(updatedUser);
   } catch (err) {
     next(new HttpError(err.message));
   }
