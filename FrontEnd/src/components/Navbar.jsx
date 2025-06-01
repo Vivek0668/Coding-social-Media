@@ -1,19 +1,39 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {CiSearch} from 'react-icons/ci'
 import { useSelector } from 'react-redux'
 import ProfileImage from './ProfileImage'
 import { useEffect } from 'react'
+import axios from 'axios'
 
 const Navbar = () => {
   const navigate = useNavigate();
  const userId = useSelector(state=> state?.user?.currentUser?.id)
  const token = useSelector(state=> state?.user?.currentUser?.token)
-  const profilePhoto = useSelector(state=> state?.user?.currentUser?.profilePhoto);
+  const [profilePhoto,setProfilePhoto] = 
+  useState(useSelector(state=> state?.user?.currentUser.profilePhoto))
 console.log(userId, token, profilePhoto);
 
 
+ 
 
+const getUser= async()=> {
+  try {
+    const response = await 
+    axios.get(`${import.meta.env.VITE_Backend_api_url}/users/${userId}`, {
+      withCredentials:true, headers :{Authorization : `Bearer ${token}`}
+    })
+    setProfilePhoto(response.data.user.profilePhoto)
+
+  }catch(err) {
+    console.log(err)
+  }
+
+}
+
+useEffect(()=>{
+  getUser();
+},[])
 
 //redirect the user if not logged in 
  useEffect(()=> {
