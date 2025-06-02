@@ -136,10 +136,11 @@ const followUnfollowUser = async(req,res,next)=>{
         const currentUser =await User.findById(req.user.id);
         const isFollowing = currentUser?.following?.includes(userToFollow);
         if(isFollowing) {
-        const udpatedUser = await User.findByIdAndUpdate(userToFollow, {$pop: {followeres: req.user.id}}, {new : true})
-        await User.findByIdAndUpdate(req.user.id, {$pop: {following: userToFollow}}, 
+        const udpatedUser = await User.findByIdAndUpdate(userToFollow, {$pull: {followeres: req.user.id}}, {new : true})
+        await User.findByIdAndUpdate(req.user.id, {$pull: {following: userToFollow}}, 
             {new : true}
         )
+        res.json(udpatedUser)
         }else {
             const updatedUser = await User.findByIdAndUpdate(userToFollow, {
                 $push: {followeres: req.user.id}

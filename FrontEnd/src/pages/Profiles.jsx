@@ -6,6 +6,7 @@ import axios from 'axios'
 import { useSelector } from 'react-redux'
 import Feed from '../components/Feed'
 import EditPostModal from '../components/EditPostModal'
+import EditProfileModal from '../components/EditProfileModal'
 
 const Profiles = () => {
   const [userPosts,setUserPosts] = useState([]);
@@ -14,6 +15,7 @@ const Profiles = () => {
   const token = useSelector(state=> state.user.currentUser.token)
   const [user,setUser] = useState({})
   const editPostModalIsOpen = useSelector(state=> state.ui.editPostModalIsOpen)
+  const editProfileModalIsOpen = useSelector(state=>state.ui.editProfileModalIsOpen)
 
   const getUser = async()=> {
     try {
@@ -91,7 +93,7 @@ const Profiles = () => {
    <Feed key={post._id} post={post} OnDeletePost = {deletePost}/>)
    }</section>
    {editPostModalIsOpen && <EditPostModal  onUpdatePost={updatePost}/>}
-      
+   {editProfileModalIsOpen && <EditProfileModal/>}
     </section>
   )
 }
