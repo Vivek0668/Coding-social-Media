@@ -34,7 +34,9 @@ const createMessage = async(req,res,next)=> {
         io.to(receiverSocketId).emit("newMessage", newMessage)
      }
 
-     res.json({message : message}).status(200)
+res.status(200).json(message);
+
+
     }catch(err) {
         return next(new HttpError(err))
     }

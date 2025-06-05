@@ -123,7 +123,7 @@ const [avatarTouched,setAvatarTouched] = useState(false);
                 onClick={openEditProfileModal}>Edit Profile</button> :
                 <button onClick={followUnfollowUser} className='btn dark'>{followsUser? "Unfollow" : 
                 "Follow" }</button>}
-                {user?._id!= loggedInUser &&  <Link to={`messages/${user?._id}`} 
+                {user?._id!= loggedInUser &&  <Link to={`/messages/${user?._id}`} 
                 className='btn default'>Message</Link>}
             </div>
             <article className ="profile__bio">

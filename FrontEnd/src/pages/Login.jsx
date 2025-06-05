@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {FaEye, FaEyeSlash} from "react-icons/fa"
 import axios, {Axios} from "axios"
 import { useDispatch } from 'react-redux'
-import { userActions } from '../store/user-Slice'
+import { userActions } from '../store/user-slice'
 
   
 
@@ -63,7 +63,7 @@ const loginUser = async (e) => {
       
       {console.log(user)}
    
-      <p>New to Codera? <Link to="/login">Sign-Up</Link></p>
+      <p>New to Codera? <Link to="/register">Sign-Up</Link></p>
       <button type='submit' className='btn primary'>Login</button>
    
 
