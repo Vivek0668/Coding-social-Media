@@ -98,7 +98,7 @@ const Feed = ({ post, onBookmarkChange, OnDeletePost}) => {
     return (
         <article className='feed'>
             <header className='feed__header'>
-                <Link to={`users/${post.creator}`} className='feed__header-profile'>
+                <Link to={`/users/${post.creator}`} className='feed__header-profile'>
                     <ProfileImage image={creator?.user?.profilePhoto} />
                     <div className='feed__header-details'>
                         <h4>{creator?.user?.fullName}</h4>
@@ -116,7 +116,7 @@ const Feed = ({ post, onBookmarkChange, OnDeletePost}) => {
              
             </header>
 
-            <Link to={`posts/${post?._id}`} className='feed__body'>
+            <Link to={`/posts/${post?._id}`} className='feed__body'>
                 <p><Trimtext item={post?.body} maxLength={100} /></p>
                 {post?.image && (
                     <div className='feed__images'>

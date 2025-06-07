@@ -22,7 +22,7 @@ const getReceiverSocketId = (recipientId) => {
 
 io.on("connection", (socket) => {
     const userId = socket.handshake.query.userId;
-    console.log("User attempting connection:", { userId, socketId: socket.id });
+    console.log("User attempting connection:", { userId, socketId: socket.id, query: socket.handshake.query });
 
     if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
         const userIdStr = userId.toString();
@@ -39,6 +39,11 @@ io.on("connection", (socket) => {
         const userIdStr = userId?.toString();
         if (userIdStr) delete userSocketMap[userIdStr];
         io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    });
+
+    // Debug connection issues
+    socket.on("connect_error", (err) => {
+        console.error("Socket connection error from client:", err.message);
     });
 });
 

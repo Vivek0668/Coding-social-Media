@@ -4,7 +4,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import axios from "axios";
 import { useDispatch, useSelector } from 'react-redux';
 import { userActions } from '../store/user-slice';
-import { io } from 'socket.io-client';
+import { initSocket } from '../socket'; // Import socket module
 
 export default function Login() {
     const [user, setUser] = useState({ email: "", password: "" });
@@ -26,37 +26,13 @@ export default function Login() {
             if (response.status === 200) {
                 dispatch(userActions.changeCurrentUser(response?.data));
                 localStorage.setItem("currentUser", JSON.stringify(response?.data));
+                initSocket(response.data._id); // Initialize socket after login
                 navigate("/");
             }
         } catch (err) {
             setError(err.response?.data?.message || "Login failed");
         }
     };
-
-    // Initialize socket after login
-    useEffect(() => {
-        if (!currentUser?._id) {
-            console.log("No user ID yet, skipping socket init:", currentUser);
-            return;
-        }
-        console.log("Initializing socket for user:", currentUser._id);
-        const socket = io(`${import.meta.env.VITE_Backend_api_url}`, {
-            query: { userId: currentUser._id?.toString() },
-            transports: ['websocket'],
-            withCredentials: true
-        });
-        socket.on("connect", () => {
-            console.log("Socket connected successfully for user:", currentUser._id, "Socket ID:", socket.id);
-        });
-        socket.on("connect_error", (err) => {
-            console.error("Socket connection error:", err.message);
-        });
-        dispatch(userActions.setSocket(socket));
-        return () => {
-            socket.disconnect();
-            console.log("Socket disconnected for user:", currentUser._id);
-        };
-    }, [currentUser, dispatch]);
 
     return (
         <section className='register'>

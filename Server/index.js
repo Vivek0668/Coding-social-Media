@@ -5,14 +5,14 @@ require("dotenv").config();
 const { connect } = require("mongoose");
 const routes = require("./routes/routes");
 const { notFound, errorHandler } = require('./middlewares/errormiddleware');
-const { server, app, io } = require('./socket/socket'); // Ensure io is imported for debugging
+const { server, app, io } = require('./socket/socket');
 
 // Middleware
 app.use(express.json({ extended: true }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({System: {extended: true} }));
 app.use(cors({ 
     credentials: true, 
-    origin: "http://localhost:5173" // Single origin for simplicity, matches frontend
+    origin: "http://localhost:5173"
 }));
 app.use(upload());
 
@@ -31,8 +31,7 @@ connect(process.env.MONGO_URL)
             console.log(`Server running on port ${port}`);
             console.log("Environment variables:", {
                 PORT: process.env.PORT,
-                MONGO_URL: process.env.MONGO_URL ? "Set" : "Not set",
-                Backend_API_URL: process.env.Backend_api_url
+                MONGO_URL: process.env.MONGO_URL ? "Set" : "Not set"
             });
         });
     })

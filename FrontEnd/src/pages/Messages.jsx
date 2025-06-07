@@ -6,7 +6,7 @@ import { userActions } from "../store/user-slice";
 import ProfileImage from '../components/ProfileImage';
 import { IoMdSend } from 'react-icons/io';
 import MessageItem from '../components/MessageItem';
-import { io } from 'socket.io-client';
+import { getSocket } from '../socket'; // Import socket module
 
 const Messages = () => {
     const { receiverId } = useParams();
@@ -16,34 +16,9 @@ const Messages = () => {
     const [conversationId, setConversationId] = useState("");
     const messageEndRef = useRef();
     const token = useSelector(state => state?.user?.currentUser?.token);
-    const socket = useSelector(state => state?.user?.socket);
     const userId = useSelector(state => state?.user?.currentUser?._id);
     const dispatch = useDispatch();
-
-    // Initialize socket if not already in Redux
-    useEffect(() => {
-        if (!userId || socket) {
-            console.log("Socket status:", { userId, socketExists: !!socket });
-            return;
-        }
-        console.log("Initializing socket for user:", userId);
-        const newSocket = io(`${import.meta.env.VITE_Backend_api_url}`, {
-            query: { userId: userId?.toString() },
-            transports: ['websocket'],
-            withCredentials: true
-        });
-        newSocket.on("connect", () => {
-            console.log("Socket connected successfully for user:", userId, "Socket ID:", newSocket.id);
-        });
-        newSocket.on("connect_error", (err) => {
-            console.error("Socket connection error:", err.message);
-        });
-        dispatch(userActions.setSocket(newSocket));
-        return () => {
-            newSocket.disconnect();
-            console.log("Socket disconnected for user:", userId);
-        };
-    }, [userId, socket, dispatch]);
+    const socket = getSocket(); // Get socket from module
 
     const getOtherMessager = async () => {
         try {
@@ -147,17 +122,6 @@ const Messages = () => {
             console.log("Socket listener for newMessage removed");
         };
     }, [socket, receiverId, conversationId, dispatch, userId]);
-
-    // Fallback: Poll for messages if socket fails
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (!socket) {
-                console.log("No socket, polling for messages");
-                getMessages();
-            }
-        }, 5000); // Poll every 5 seconds if no socket
-        return () => clearInterval(interval);
-    }, [socket]);
 
     // Scroll to bottom effect
     useEffect(() => {

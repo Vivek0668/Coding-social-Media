@@ -30,19 +30,28 @@ const Profiles = () => {
       console.log(err)
     }
   }
-  const getUserPosts = async()=> {
-    setIsLoading(true)
-    try{
-     const response = await axios.get(`${import.meta.env.VITE_Backend_api_url}/users/${id}/posts`,
-      {withCredentials:true,headers: {Authorization : `Bearer ${token}`}}
-     )
-     setUserPosts(response?.data)
-    
-    }catch(err) {
-      console.log(err)
-      setIsLoading(false)
-    }
+  const getUserPosts = async () => {
+  setIsLoading(true);
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_Backend_api_url}/users/${id}/posts`,
+      {
+        withCredentials: true,
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+ 
+    const postsArray = Array.isArray(response?.data) ? response.data : [];
+
+    setUserPosts(postsArray);
+  } catch (err) {
+    console.log("Error fetching user posts:", err);
+    setUserPosts([]); 
+  } finally {
+    setIsLoading(false);
   }
+};
 
   const deletePost = async(postId)=> {
     try {

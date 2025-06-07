@@ -1,82 +1,83 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import {CiSearch} from 'react-icons/ci'
+import { CiSearch } from 'react-icons/ci'
 import { useSelector } from 'react-redux'
 import ProfileImage from './ProfileImage'
-import { useEffect } from 'react'
 import axios from 'axios'
 
 const Navbar = () => {
   const navigate = useNavigate();
- const userId = useSelector(state=> state?.user?.currentUser?.id)
- const token = useSelector(state=> state?.user?.currentUser?.token)
-  const [profilePhoto,setProfilePhoto] = 
-  useState(useSelector(state=> state?.user?.currentUser.profilePhoto))
-console.log(userId, token, profilePhoto);
 
+  const currentUser = useSelector(state => state?.user?.currentUser);
+  const userId = currentUser?.id;
+  const token = currentUser?.token;
 
- 
-
-const getUser= async()=> {
-  try {
-    const response = await 
-    axios.get(`${import.meta.env.VITE_Backend_api_url}/users/${userId}`, {
-      withCredentials:true, headers :{Authorization : `Bearer ${token}`}
-    })
-    setProfilePhoto(response.data.user.profilePhoto)
-
-  }catch(err) {
-    console.log(err)
-  }
-
-}
-
-useEffect(()=>{
-  getUser();
-},[])
-
-//redirect the user if not logged in 
- useEffect(()=> {
-  if(!token) {
+  const [profilePhoto, setProfilePhoto] = useState(currentUser?.profilePhoto || "");
+  
+  if(profilePhoto== null || profilePhoto == "") {
     navigate("/login")
   }
+  // Fetch user info only if logged in
+  const getUser = async () => {
+    try {
+      if (!userId || !token) return;
+      const response = await axios.get(
+        `${import.meta.env.VITE_Backend_api_url}/users/${userId}`,
+        {
+          withCredentials: true,
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      setProfilePhoto(response.data.user.profilePhoto);
+    } catch (err) {
+      console.log("Navbar fetch error:", err);
+    }
+  };
 
- },[])
+  useEffect(() => {
+    getUser();
+  }, [userId, token]);
 
+  // Redirect to login if not logged in
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+    }
+  }, [token, navigate]);
 
- //Log user out after certain time
- useEffect(()=> {
-  setTimeout(()=> {
-    navigate("/logout")
-  },1000* 60* 60);
+  // Auto logout after 1 hour
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      navigate("/logout");
+    }, 1000 * 60 * 60);
 
- },[])
+    return () => clearTimeout(timeout);
+  }, [navigate]);
 
-
-
- 
-
-
-
-
-return (
-  <div>
-    <nav className='navbar' >
+  return (
+    <nav className='navbar'>
       <div className='container navbar__container'>
         <Link to="/" className='navbar_logo'>CODERA</Link>
+
         <form className='navbar__search'>
-          <input type="search" placeholder='Search'/>
-          <button type='submit'><CiSearch/></button>
+          <input type="search" placeholder='Search' />
+          <button type='submit'><CiSearch /></button>
         </form>
+
         <div className='navbar__right'>
-          <Link to={`/users/${userId}`}  className='navbar__profile'>
-          <ProfileImage image={profilePhoto}/>
-           </Link>
-           {token ? <Link to="/logout">Logout</Link> : <Link to="/login">Login</Link>}
+          {token && userId ? (
+            <Link to={`/users/${userId}`} className='navbar__profile'>
+              <ProfileImage image={profilePhoto} />
+            </Link>
+          ) : (
+            <Link to="/login">Login</Link>
+          )}
+
+          {token && <Link to="/logout">Logout</Link>}
         </div>
       </div>
     </nav>
-  </div>
-)
-}
-export default Navbar
+  );
+};
+
+export default Navbar;
