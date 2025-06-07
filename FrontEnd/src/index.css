@@ -1713,3 +1713,36 @@ MEDIA QUERIES (small screens)
   width: var(--container-w-sm);
 }
 }
+
+/* Ensure the message list has proper spacing and no default styles */
+.messagesBox__messages {
+    list-style: none;
+    padding: 10px;
+    margin: 0;
+    overflow-y: auto; /* For scrolling long message lists */
+}
+
+/* Base style for all messages */
+.messagesBox__message {
+    max-width: 70%; /* Limit message width for better layout */
+    margin: 10px 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    clear: both; /* Prevent overlap with floated elements */
+}
+
+/* Style for sent messages (current user) */
+.messagesBox__message.sent {
+    float: right; /* Align to the right for sender */
+    background-color: #007bff; /* Blue background for sent messages */
+    color: white; /* White text for contrast */
+    margin-left: 30%; /* Ensure space from left for alignment */
+}
+
+/* Style for received messages (other user) */
+.messagesBox__message.received {
+    float: left; /* Align to the left for receiver */
+    background-color: #e9ecef; /* Gray background for received messages */
+    color: black; /* Black text for contrast */
+    margin-right: 30%; /* Ensure space from right for alignment */
+}

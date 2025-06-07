@@ -1,93 +1,120 @@
-const HttpError = require("../models/errorModel")
-const Conversation = require("../models/conversationModel")
+const HttpError = require("../models/errorModel");
+const Conversation = require("../models/conversationModel");
 const Message = require("../models/messageModel");
-const { text } = require("express");
 const { getReceiverSocketId, io } = require("../socket/socket");
 
-
-
-///==================CREATE MESSAGE
-//POST : api/messages/:receiverId
+//==================CREATE MESSAGE
+//POST: api/messages/:receiverId
 //PROTECTED
+const createMessage = async (req, res, next) => {
+    try {
+        const { receiverId } = req.params;
+        const { newMessage } = req.body;
 
-
-const createMessage = async(req,res,next)=> {
-    try{
-        const{receiverId} = req.params;
-        const {newMessage} = req.body;
-        //check if there's already a convo going 
-     let conversation = await Conversation.findOne({participants : {$all : [req.user.id, receiverId]}})
-     //if not create new one
-     if(!conversation) {
-        conversation = await Conversation.create({participants:[req.user.id, receiverId],
-            lastMessage : {text : newMessage, senderId : req.user.id}
-        })
-     }
-
-     //create Message 
-     const message = await Message.create({
-        conversationId : conversation._id, senderId : req.user.id, text : newMessage
-     })
-     await conversation.updateOne({lastMessage :{text : newMessage, senderId : req.user.id}})
-     const receiverSocketId  = getReceiverSocketId(receiverId)
-     if(receiverSocketId){
-        io.to(receiverSocketId).emit("newMessage", newMessage)
-     }
-
-res.status(200).json(message);
-
-
-    }catch(err) {
-        return next(new HttpError(err))
-    }
-}
-
-////===============GET MESSAGES
-//POST : api/messages/:receiverId
-//PROTECTED
-
-const getMessage = async(req,res,next)=> {
-    try{
-       const {receiverId} = req.params;
-       const conversation = await Conversation.findOne({participants: [req.user.id, receiverId]})
-       if(!conversation) {
-        return next(new HttpError("You have no conversation with this person",404))
-       }
-       const messages = await Message.find({conversationId : conversation._id}).sort({createdAT: 1})
-       res.json(messages).status(200)
-
-    }catch(err) {
-        return next(new HttpError(err))
-    }
-}
-
-
-
-///===================GET CONVERSATIONS
-//GET api/conversations
-//PROTECTED
-const  getConversations = async(req,res,next)=> {
-    try{
-        let conversation =await Conversation.find({participants : req.user.id}).populate({
-            path : "participants", select : "fullName profilePhoto"
-        }).sort({createdAt : -1})
-        
-        conversation.forEach((conversation)=> {
-            conversation.participants  = conversation.participants.filter(participants=>
-                participants._id.toString()!= req.user.id.toString()
-
-             );
+        // Check if conversation exists
+        let conversation = await Conversation.findOne({
+            participants: { $all: [req.user.id, receiverId] }
         });
-        res.json(conversation).status(200)
-    }catch(err) {
-        return next(new HttpError(err))
+
+        // Create new conversation if not found
+        if (!conversation) {
+            conversation = await Conversation.create({
+                participants: [req.user.id, receiverId],
+                lastMessage: { text: newMessage, senderId: req.user.id, createdAt: new Date(), seen: false }
+            });
+        }
+
+        // Create message
+        const message = await Message.create({
+            conversationId: conversation._id,
+            senderId: req.user.id,
+            text: newMessage
+        });
+
+        // Update last message
+        await Conversation.updateOne(
+            { _id: conversation._id },
+            { $set: { 
+                lastMessage: { 
+                    text: newMessage, 
+                    senderId: req.user.id, 
+                    createdAt: new Date(), 
+                    seen: false 
+                } 
+            } }
+        );
+
+        // Emit full message object to both sender and receiver
+        const fullMessage = {
+            ...message.toObject(),
+            senderId: req.user.id.toString(), // Ensure string
+            receiverId: receiverId.toString(), // Ensure string
+            conversationId: conversation._id
+        };
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("newMessage", fullMessage);
+            console.log("Emitted newMessage to receiver:", { receiverId, receiverSocketId, message: fullMessage });
+        } else {
+            console.log("No socket ID found for receiver:", receiverId);
+        }
+        const senderSocketId = getReceiverSocketId(req.user.id);
+        if (senderSocketId) {
+            io.to(senderSocketId).emit("newMessage", fullMessage);
+            console.log("Emitted newMessage to sender:", { senderId: req.user.id, senderSocketId, message: fullMessage });
+        } else {
+            console.log("No socket ID found for sender:", req.user.id);
+        }
+
+        res.status(200).json(fullMessage);
+    } catch (err) {
+        console.error("Error in createMessage:", err);
+        return next(new HttpError(err));
     }
-}
+};
+//===============GET MESSAGES
+//POST: api/messages/:receiverId
+//PROTECTED
+const getMessage = async (req, res, next) => {
+    try {
+        const { receiverId } = req.params;
 
+        const conversation = await Conversation.findOne({
+            participants: { $all: [req.user.id, receiverId] }
+        });
 
+        if (!conversation) {
+            return next(new HttpError("You have no conversation with this person", 404));
+        }
 
-module.exports = {getMessage, createMessage, getConversations}
+        const messages = await Message.find({ conversationId: conversation._id })
+                                      .sort({ createdAt: 1 });
 
+        res.status(200).json(messages);
+    } catch (err) {
+        return next(new HttpError(err));
+    }
+};
 
+//===================GET CONVERSATIONS
+//GET: api/conversations
+//PROTECTED
+const getConversations = async (req, res, next) => {
+    try {
+        let conversation = await Conversation.find({ participants: req.user.id }).populate({
+            path: "participants",
+            select: "fullName profilePhoto"
+        }).sort({ createdAt: -1 });
+        
+        conversation.forEach((conversation) => {
+            conversation.participants = conversation.participants.filter(participant =>
+                participant._id.toString() != req.user.id.toString()
+            );
+        });
+        res.status(200).json(conversation);
+    } catch (err) {
+        return next(new HttpError(err));
+    }
+};
 
-
+module.exports = { getMessage, createMessage, getConversations };

@@ -1,37 +1,45 @@
- const http = require("http");
- const {Server} = require("socket.io");
- const express = require("express");
-const { Socket } = require("dgram");
+const http = require("http");
+const { Server } = require("socket.io");
+const express = require("express");
 
- const app = express();
- const server = http.createServer(app);
- const io = new Server(server, {
-    cors : {
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
         origin: "http://localhost:5173",
-        methods : ["GET", "POST", "PATCH", "DELETE"]
+        methods: ["GET", "POST", "PATCH", "DELETE"],
+        credentials: true
     }
- })
+});
 
+const userSocketMap = {}; // userId: socketId
 
- const getReceiverSocketId = (recipientId)=> {
-    return userSocketMap[recipientId];
- }
+const getReceiverSocketId = (recipientId) => {
+    const socketId = userSocketMap[recipientId?.toString()];
+    console.log(`Looking up socket ID for user ${recipientId}: ${socketId || 'not found'}`);
+    return socketId;
+};
 
- const userSocketMap = {}; //userId: socketId
+io.on("connection", (socket) => {
+    const userId = socket.handshake.query.userId;
+    console.log("User attempting connection:", { userId, socketId: socket.id });
 
- io.on("connection", (socket)=> {
-    console.log("user connected", socket.id);
-    const userId = socket.handshake.query.userId
+    if (userId && userId !== "undefined" && userId !== "null" && userId !== "") {
+        const userIdStr = userId.toString();
+        userSocketMap[userIdStr] = socket.id;
+        console.log("User socket map updated:", userSocketMap);
+    } else {
+        console.log("Invalid userId, connection rejected:", userId);
+    }
 
-    if(userId != "undefined") userSocketMap[userId] = socket.id;
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
-    socket.on("disconnect", ()=>{
-        console.log("user disconnected");
-        delete userSocketMap[userId];
+    socket.on("disconnect", () => {
+        console.log("User disconnected:", { userId, socketId: socket.id });
+        const userIdStr = userId?.toString();
+        if (userIdStr) delete userSocketMap[userIdStr];
         io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    });
+});
 
-    })
- })
-
- module.exports = {io, server, app, getReceiverSocketId};
+module.exports = { io, server, app, getReceiverSocketId };

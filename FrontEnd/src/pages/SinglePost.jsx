@@ -16,7 +16,7 @@ const SinglePost = () => {
   const token = useSelector(state=> state.user?.currentUser?.token);
   const [comments,setComments] = useState([]);
   const[comment,setComment] = useState("");
-
+ const [deleted,setDeleted] = useState(false);
 
 
 
@@ -39,10 +39,12 @@ const SinglePost = () => {
       {withCredentials : true , headers: {Authorization: `Bearer ${token}`}} )
        setComments((prevComments) =>
       prevComments.filter((c) => c._id !== commentId)
-    );
+    ) 
+    setDeleted(!deleted)
   
     }catch(err) {
      console.log(err)
+     setDeleted(!deleted)
     }
 
   }
@@ -65,7 +67,7 @@ const SinglePost = () => {
   
   useEffect(()=>{
     getPost()
-  },[deleteComment,creatComment])
+  },[id,deleted])
 
 
   console.log(post);
