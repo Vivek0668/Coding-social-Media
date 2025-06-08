@@ -17,7 +17,7 @@ const {id: userId} = useParams();
 const token  = useSelector(state=> state.user?.currentUser?.token);
 const [user,setUser] = useState({});
 const loggedInUser = useSelector(state=> state.user?.currentUser?.id);
-const [followsUser, setFollowsUser] = useState(user?.followeres?.includes(loggedInUser))
+const [followsUser, setFollowsUser] = useState(false);
 const [avatar,setAvatar] = useState(user?.profilePhoto)
 const [avatarTouched,setAvatarTouched] = useState(false);
 
@@ -28,12 +28,18 @@ const [avatarTouched,setAvatarTouched] = useState(false);
         (`${import.meta.env.VITE_Backend_api_url}/users/${userId}`,
              {withCredentials:true, headers: {Authorization: `Bearer ${token}`}})
              setUser(response.data.user)
-             setFollowsUser(response.data.user?.followeres.includes(loggedInUser))
+             
              setAvatar(response.data?.user?.profilePhoto)
         }catch(err) {
             console.log(err)
         }
    }
+   useEffect(() => {
+  if (user?.followeres) {
+    setFollowsUser(user.followeres.includes(loggedInUser));
+  }
+}, [user, loggedInUser]);
+
 
 
    
@@ -49,7 +55,8 @@ const [avatarTouched,setAvatarTouched] = useState(false);
         ) 
         dispatch(userActions.changeCurrentUser
             ({...currentUser, profilePhoto : response.data?.profilePhoto}))
-        navigate(0)
+       setAvatarTouched(false);
+      getUser();
         
         }catch(err) {
             console.log(err)
@@ -65,25 +72,27 @@ const [avatarTouched,setAvatarTouched] = useState(false);
 
     }
 
-    const followUnfollowUser =async()=> {
-         try {
-            setFollowsUser(!followsUser)
-            await axios.get
-            (`${import.meta.env.VITE_Backend_api_url}/users/${userId}/follow-unfollow`,{
-                withCredentials: true, headers : {Authorization : `Bearer ${token}`}
-            })
-          
-            
-         }catch(err) {
-           setFollowsUser(!followsUser)
-            console.log(err)
-         }
-        
-    }
+    const followUnfollowUser = async () => {
+  try {
+    await axios.get(
+      `${import.meta.env.VITE_Backend_api_url}/users/${userId}/follow-unfollow`,
+      {
+        withCredentials: true,
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    // Only update on success
+    setFollowsUser(!followsUser);
+  } catch (err) {
+    console.log(err);
+  }
+};
 
-       useEffect(()=> {
-    getUser()
-   },[userId, followUnfollowUser,avatar])
+
+       useEffect(() => {
+  getUser();
+}, [userId]);
+
 
   return (
     <section className='profile'>
@@ -98,7 +107,7 @@ const [avatarTouched,setAvatarTouched] = useState(false);
          <button type='submit' className='profile__image-btn'><FaCheck/></button>}
          <input
        type='file' name='avatar' id='avatar' onChange={e=> {setAvatar(e.target.files[0]);
-       setAvatarTouched(true)}}  accept='png, jpg, jpeg'/>
+       setAvatarTouched(true)}}  accept='image/png, image/jpg, image/jpeg'/>
             </form>
             <h4> {user?.fullName}</h4>
             <small>{user?.email}</small>
