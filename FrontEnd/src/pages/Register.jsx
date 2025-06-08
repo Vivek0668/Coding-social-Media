@@ -27,11 +27,12 @@ const registerUser = async (e) => {
   try {
     const response = await axios.post(`${import.meta.env.VITE_Backend_api_url}/users/register`, user);
     console.log(response.data); 
-    if (response.statusText == "OK") {
-      navigate("/login")
+    if (response.status === 200) {
+      console.log("Navigating to login...");
+      navigate("/login");
     }
   } catch (err) {
-    setError(err.response.data.message);
+    setError(err.response?.data?.message || "Something went wrong");
   }
 };
 
