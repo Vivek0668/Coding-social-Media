@@ -10,10 +10,27 @@ const { server, app, io } = require('./socket/socket');
 // Middleware
 app.use(express.json({ extended: true }));
 app.use(express.urlencoded({System: {extended: true} }));
-app.use(cors({ 
-    credentials: true, 
-    origin: "https://coding-social-media-vxqo.vercel.app"
+const allowedOrigins = [
+  "https://coding-social-media.vercel.app",
+  "https://coding-social-media-vxqo.vercel.app",
+  "https://coding-social-media-git-main-vivek-pokharankars-projects.vercel.app",
+  /^https:\/\/coding-social-media.*\.vercel\.app$/, // Regex for dynamic previews
+  "http://localhost:5173" // for local development
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.some(o =>
+      typeof o === 'string' ? o === origin : o.test(origin)
+    )) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
 }));
+
 app.use(upload());
 
 // Routes

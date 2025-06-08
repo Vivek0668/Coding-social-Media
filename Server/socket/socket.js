@@ -4,13 +4,30 @@ const express = require("express");
 
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = [
+    "https://coding-social-media.vercel.app",
+    "https://coding-social-media-vxqo.vercel.app",
+    "https://coding-social-media-git-main-vivek-pokharankars-projects.vercel.app",
+    /^https:\/\/coding-social-media.*\.vercel\.app$/,
+    "http://localhost:5173"
+];
+
 const io = new Server(server, {
     cors: {
-        origin: "https://coding-social-media-vxqo.vercel.app",
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.some(o =>
+                typeof o === 'string' ? o === origin : o.test(origin)
+            )) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
         methods: ["GET", "POST", "PATCH", "DELETE"],
         credentials: true
     }
 });
+
 
 const userSocketMap = {}; // userId: socketId
 
