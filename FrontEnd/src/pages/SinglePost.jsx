@@ -71,12 +71,12 @@ const navigate = useNavigate();
     );
     const newComment = response.data;
     setComments([newComment, ...comments]);
-    navigate(0);
-    setComment(""); // Clear after submission
+    setComment(""); // Clear input
   } catch (err) {
     console.log(err);
   }
 };
+
 
   
   useEffect(()=>{
@@ -126,9 +126,9 @@ const navigate = useNavigate();
   />
   <button type='submit' className='singlePost__comments-btn'><IoMdSend/></button>
 </form>
-
-    {post?.comments?.map(comment=> <PostComment key={comment._id} 
-    comment={comment} onDeleteComment={deleteComment}  />)}
+{comments.map(comment => (
+  <PostComment key={comment._id} comment={comment} onDeleteComment={deleteComment} />
+))}
     </ul>
    </section>
   )
