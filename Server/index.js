@@ -12,7 +12,7 @@ app.use(express.json({ extended: true }));
 app.use(express.urlencoded({System: {extended: true} }));
 app.use(cors({ 
     credentials: true, 
-    origin: "http://localhost:5173"
+    origin: "https://coding-social-media-vxqo.vercel.app"
 }));
 app.use(upload());
 
