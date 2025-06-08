@@ -12,7 +12,7 @@ export const initSocket = (userId) => {
         return socket;
     }
 
-    const backendUrl = "http://localhost:5000"; // Hardcoded as requested
+    const backendUrl = "https://coding-social-media.onrender.com"; // Hardcoded as requested
     console.log("Initializing socket with URL:", backendUrl, "for user:", userId);
     socket = io(backendUrl, {
         query: { userId: userId?.toString() },

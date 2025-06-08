@@ -9,7 +9,7 @@ const MessagesList = () => {
     const token = useSelector(state => state?.user?.currentUser?.token);
     const userId = useSelector(state => state?.user?.currentUser?._id);
     const socket = getSocket();
-    const backendUrl = "http://localhost:5000"; // Hardcoded backend URL
+    const backendUrl = "https://coding-social-media.onrender.com"; // Hardcoded backend URL
 
     const getConversation = async () => {
         try {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux';
-import { Await, useParams } from 'react-router-dom'
+import { Await, useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios';
 import ProfileImage from '../components/ProfileImage';
 import TimeAgo from 'react-timeago';
@@ -17,57 +17,72 @@ const SinglePost = () => {
   const [comments,setComments] = useState([]);
   const[comment,setComment] = useState("");
  const [deleted,setDeleted] = useState(false);
+ const[create,setCreate] = useState(false);
+const navigate = useNavigate();
 
 
-
-  const getPost =async ()=> {
-    try 
-    {
-  const response = await axios.get(`${import.meta.env.VITE_Backend_api_url}/posts/${id}`,{
-      withCredentials: true, headers : {Authorization : `Bearer ${token}`}
-    }) 
+ const getPost = async () => {
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_Backend_api_url}/posts/${id}`,
+      {
+        withCredentials: true,
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     setPost(response?.data);
-    }catch(err) {
-      console.log(err);
-    }   
+    setComments(response?.data?.comments || []);
+  } catch (err) {
+    console.log(err);
   }
+};
 
   //delete comment
   const deleteComment= async(commentId)=> {
     try {
      const response = await axios.delete(`${import.meta.env.VITE_Backend_api_url}/comments/${commentId}`,
       {withCredentials : true , headers: {Authorization: `Bearer ${token}`}} )
+
        setComments((prevComments) =>
       prevComments.filter((c) => c._id !== commentId)
+   
     ) 
+    setCreate(!create);
     setDeleted(!deleted)
   
     }catch(err) {
      console.log(err)
+     setCreate(!create)
      setDeleted(!deleted)
     }
 
   }
 
   //creatComment
-  const creatComment = async()=> {
-    try {
-      const response =await axios.post
-      (`${import.meta.env.VITE_Backend_api_url}/comments/${id}`,{comment}
-        ,{withCredentials: true , headers: {Authorization : `Bearer ${token}`}}
-      )
-      const newComment = response.data;
-      setComments([newComment,...comments])
-     
+ const creatComment = async () => {
+  try {
+    const response = await axios.post(
+      `${import.meta.env.VITE_Backend_api_url}/comments/${id}`,
+      { comment },
+      {
+        withCredentials: true,
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    const newComment = response.data;
+    setComments([newComment, ...comments]);
+    navigate(0);
+    setComment(""); // Clear after submission
+  } catch (err) {
+    console.log(err);
+  }
+};
 
-    }catch(err) {
-      console.log(err);
-    }
-  }  
   
   useEffect(()=>{
     getPost()
-  },[id,deleted])
+
+  },[id,deleted,create])
 
 
   console.log(post);
@@ -100,12 +115,17 @@ const SinglePost = () => {
     </footer>
 
     <ul className='singlePost__comments'>
-      <form className='singlePost__comments-form' onSubmit={creatComment}>
-      <textarea value={comment}  placeholder='Enter your comment...' onChange={(e)=> setComment(e.target.value)}>
-   
-    </textarea>
-    <button type='submit' className='singlePost__comments-btn'><IoMdSend/></button>
-       </form>
+    <form className='singlePost__comments-form' onSubmit={(e) => {
+  e.preventDefault();
+  creatComment();
+}}>
+  <textarea 
+    value={comment}
+    placeholder='Enter your comment...'
+    onChange={(e) => setComment(e.target.value)}
+  />
+  <button type='submit' className='singlePost__comments-btn'><IoMdSend/></button>
+</form>
 
     {post?.comments?.map(comment=> <PostComment key={comment._id} 
     comment={comment} onDeleteComment={deleteComment}  />)}
