@@ -57,7 +57,7 @@ const Navbar = () => {
   return (
     <nav className='navbar'>
       <div className='container navbar__container'>
-        <Link to="/" className='navbar_logo'>CODERA</Link>
+        <Link to="/" className='navbar_logo'>CodeConnect</Link>
 
         <form className='navbar__search'>
           <input type="search" placeholder='Search' />
